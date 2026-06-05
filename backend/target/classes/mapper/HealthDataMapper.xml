@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.eldercare.mapper.HealthDataMapper">
+    <select id="findByElderlyId" resultType="com.example.eldercare.entity.HealthData">
+        SELECT * FROM health_data WHERE elderly_id = #{elderlyId} ORDER BY record_time DESC
+    </select>
+    
+    <select id="findByElderlyIdAndTimeRange" resultType="com.example.eldercare.entity.HealthData">
+        SELECT * FROM health_data 
+        WHERE elderly_id = #{elderlyId} 
+        AND record_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY record_time DESC
+    </select>
+    
+    <select id="findLatestByElderlyId" resultType="com.example.eldercare.entity.HealthData">
+        SELECT * FROM health_data
+        WHERE elderly_id = #{elderlyId}
+        ORDER BY record_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="findHistory" resultType="com.example.eldercare.entity.HealthData">
+        SELECT * FROM health_data
+        WHERE elderly_id = #{elderlyId}
+        ORDER BY record_time DESC
+        LIMIT 100
+    </select>
+</mapper>

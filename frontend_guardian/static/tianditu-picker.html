@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>选择位置</title>
+    <script type="text/javascript" src="https://api.tianditu.gov.cn/api?v=4.0&tk=a1e68e34cbd7db27211f04c694a614ff"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        #map { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 120px); }
+        .center-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -100%);
+            font-size: 40px;
+            pointer-events: none;
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+            z-index: 20;
+        }
+        .info-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .info-coords {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 16px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 22px;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-cancel {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .btn-confirm {
+            background: linear-gradient(135deg, #1890ff 0%, #1989fa 100%);
+            color: #fff;
+        }
+        .search-bar {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            height: 44px;
+            background: #fff;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 20;
+        }
+        .search-input {
+            flex: 1;
+            height: 100%;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            color: #333;
+        }
+        .search-btn {
+            background: none;
+            border: none;
+            color: #1890ff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="center-marker">📍</div>
+    <div class="search-bar">
+        <input class="search-input" id="searchInput" type="text" placeholder="搜索地点" />
+        <button class="search-btn" id="searchBtn">搜索</button>
+    </div>
+    <div class="info-panel">
+        <div class="info-text" id="addressText">点击地图选择位置</div>
+        <div class="info-coords" id="coordsText">--</div>
+        <div class="btn-group">
+            <button class="btn btn-cancel" id="cancelBtn">取消</button>
+            <button class="btn btn-confirm" id="confirmBtn">确认选择</button>
+        </div>
+    </div>
+
+    <script>
+        var map;
+        var currentLng = 116.40717, currentLat = 39.90469;
+        var currentAddress = '';
+        var TIANDITU_KEY = "a1e68e34cbd7db27211f04c694a614ff";
+
+        function initMap() {
+            map = new T.Map('map');
+            map.centerAndZoom(new T.LngLat(currentLng, currentLat), 16);
+            map.enableScrollWheelZoom();
+            
+            if (map.setMinZoom) map.setMinZoom(3);
+            if (map.setMaxZoom) map.setMaxZoom(18);
+            if (map.setZoomSnap) map.setZoomSnap(1);
+
+            map.addEventListener('moveend', function() {
+                var center = map.getCenter();
+                currentLng = center.getLng();
+                currentLat = center.getLat();
+                updateCoords();
+                reverseGeocode(currentLng, currentLat);
+            });
+        }
+
+        function updateCoords() {
+            document.getElementById('coordsText').textContent = '经度: ' + currentLng.toFixed(6) + '   纬度: ' + currentLat.toFixed(6);
+        }
+
+        function reverseGeocode(lng, lat) {
+            var url = "https://api.tianditu.gov.cn/geocoder/v2?postStr={'lon':" + lng + ",'lat':" + lat + ",'ver':2}&type=geocode&tk=" + TIANDITU_KEY;
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.status === 0 && data.result) {
+                        currentAddress = data.result.formatted_address || data.result.address || '未知位置';
+                        document.getElementById('addressText').textContent = currentAddress;
+                    }
+                })
+                .catch(function(err) {
+                    document.getElementById('addressText').textContent = '逆地址解析失败';
+                });
+        }
+
+        function searchPlace(keyword) {
+            if (!keyword) return;
+            var url = "https://api.tianditu.gov.cn/geocoder/v2?postStr={'keyWord':'" + encodeURIComponent(keyword) + "','level':12,'mapBound':'116.0,39.0,117.0,41.0','queryType':1,'start':0,'count':10}&type=query&tk=" + TIANDITU_KEY;
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.status === 0 && data.result && data.result.length > 0) {
+                        var location = data.result[0].location;
+                        map.panTo(new T.LngLat(location.lon, location.lat));
+                        currentAddress = data.result[0].address || data.result[0].name || keyword;
+                        document.getElementById('addressText').textContent = currentAddress;
+                    } else {
+                        document.getElementById('addressText').textContent = '未找到该地点';
+                    }
+                })
+                .catch(function(err) {
+                    document.getElementById('addressText').textContent = '搜索失败';
+                });
+        }
+
+        document.getElementById('searchBtn').addEventListener('click', function() {
+            var keyword = document.getElementById('searchInput').value;
+            searchPlace(keyword);
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                var keyword = e.target.value;
+                searchPlace(keyword);
+            }
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', function() {
+            if (window.uni) {
+                window.uni.postMessage({
+                    data: [{ type: 'locationCancel' }]
+                });
+            }
+        });
+
+        document.getElementById('confirmBtn').addEventListener('click', function() {
+            if (window.uni) {
+                window.uni.postMessage({
+                    data: [{
+                        type: 'locationSelected',
+                        data: {
+                            lng: currentLng,
+                            lat: currentLat,
+                            address: currentAddress || '已选位置'
+                        }
+                    }]
+                });
+            }
+        });
+
+        window.addEventListener('message', function(e) {
+            try {
+                var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (data && data.type === 'setLocation' && data.lng && data.lat) {
+                    map.panTo(new T.LngLat(data.lng, data.lat));
+                }
+            } catch (err) {}
+        });
+
+        initMap();
+        updateCoords();
+        reverseGeocode(currentLng, currentLat);
+        
+        setTimeout(function() {
+            if (window.uni) {
+                window.uni.postMessage({
+                    data: [{ type: 'pickerReady' }]
+                });
+            }
+        }, 500);
+    </script>
+</body>
+</html>

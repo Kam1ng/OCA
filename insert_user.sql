@@ -1,0 +1,1 @@
+INSERT INTO users (username, password, phone, nickname, deleted) VALUES ('guardian', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '13800138001', 'Guardian Zhang', 0);

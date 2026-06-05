@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>天地图</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        #map { width: 100%; height: 100%; }
+        .info-box {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 100;
+        }
+        .info-box.show { display: block; }
+        .info-title { font-weight: bold; margin-bottom: 5px; color: #333; }
+        .info-content { color: #666; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="infoBox" class="info-box">
+        <div class="info-title" id="infoTitle">位置信息</div>
+        <div class="info-content" id="infoContent"></div>
+    </div>
+
+    <script>
+        var map = null;
+        var marker = null;
+        var markers = [];
+        var polyline = null;
+        var trackPoints = [];
+        var apiLoaded = false;
+
+        function getUrlParams() {
+            var params = {};
+            var search = window.location.search.substring(1);
+            if (search) {
+                var pairs = search.split('&');
+                for (var i = 0; i < pairs.length; i++) {
+                    var pair = pairs[i].split('=');
+                    var key = decodeURIComponent(pair[0]);
+                    var value = decodeURIComponent(pair[1] || '');
+                    params[key] = value;
+                }
+            }
+            return params;
+        }
+
+        function initMap() {
+            if (typeof T === 'undefined') {
+                setTimeout(initMap, 300);
+                return;
+            }
+            apiLoaded = true;
+
+            try {
+                map = new T.Map('map');
+                map.centerAndZoom(new T.LngLat(116.40717, 39.90469), 16);
+                map.enableScrollWheelZoom();
+
+                if (map.setMinZoom) map.setMinZoom(3);
+                if (map.setMaxZoom) map.setMaxZoom(18);
+
+                var params = getUrlParams();
+            var hasLocation = false;
+
+            if (params.track) {
+                try {
+                    var trackPoints = JSON.parse(decodeURIComponent(params.track));
+                    if (trackPoints && trackPoints.length > 0) {
+                        setTimeout(function() {
+                            window.showTrack(trackPoints, '#ff4d4f');
+                        }, 500);
+                        hasLocation = true;
+                    }
+                } catch(e) {
+                    console.error('Parse track error:', e);
+                }
+            } else if (params.lng && params.lat) {
+                var lng = parseFloat(params.lng);
+                var lat = parseFloat(params.lat);
+                var title = params.title || '当前位置';
+                addSimpleMarker(lng, lat, title);
+                hasLocation = true;
+            }
+
+                setTimeout(function() {
+                    try {
+                        if (window.uni) {
+                            window.uni.postMessage({ data: [{ type: 'mapReady', hasLocation: hasLocation }] });
+                        }
+                    } catch(e) {}
+                }, 500);
+            } catch(e) {
+                console.error('Map init error:', e);
+            }
+        }
+
+        function addSimpleMarker(lng, lat, title) {
+            if (!map) return;
+
+            try {
+                if (marker) {
+                    map.removeOverLay(marker);
+                }
+
+                marker = new T.Marker(new T.LngLat(lng, lat), {
+                    title: title || ''
+                });
+
+                map.addOverLay(marker);
+                map.panTo(new T.LngLat(lng, lat));
+
+                var infoBox = document.getElementById('infoBox');
+                var infoTitle = document.getElementById('infoTitle');
+                var infoContent = document.getElementById('infoContent');
+                if (infoBox) infoBox.classList.add('show');
+                if (infoTitle) infoTitle.textContent = title || '当前位置';
+                if (infoContent) infoContent.textContent = '经度: ' + lng.toFixed(6) + '\n纬度: ' + lat.toFixed(6);
+            } catch(e) {
+                console.error('Add marker error:', e);
+            }
+        }
+
+        window.addMarker = function(lng, lat, title) {
+            addSimpleMarker(lng, lat, title);
+        };
+
+        window.clearMarkers = function() {
+            if (!map) return;
+            markers.forEach(function(m) {
+                try { map.removeOverLay(m); } catch(e) {}
+            });
+            markers = [];
+            if (marker) {
+                try { map.removeOverLay(marker); } catch(e) {}
+                marker = null;
+            }
+        };
+
+        window.addPolyline = function(points, color) {
+            if (!map || !points || points.length < 2) return;
+            try {
+                if (polyline) {
+                    map.removeOverLay(polyline);
+                }
+                var linePoints = points.map(function(p) {
+                    return new T.LngLat(p.lng, p.lat);
+                });
+                polyline = new T.Polyline(linePoints, {
+                    color: color || '#1890ff',
+                    weight: 5,
+                    opacity: 0.8
+                });
+                map.addOverLay(polyline);
+                map.setViewport(linePoints, { margins: [50, 50, 50, 50] });
+            } catch(e) {
+                console.error('Add polyline error:', e);
+            }
+        };
+
+        window.showTrack = function(points, color) {
+            trackPoints = points;
+            clearMarkers();
+            if (!map || !points || points.length === 0) return;
+            try {
+                var startIcon = new T.Icon('https://a4.apgecom.com/start.png', new T.Point(24, 24), new T.Point(12, 24));
+                var endIcon = new T.Icon('https://a4.apgecom.com/end.png', new T.Point(24, 24), new T.Point(12, 24));
+
+                var startMarker = new T.Marker(new T.LngLat(points[0].lng, points[0].lat), { icon: startIcon, title: '起点' });
+                var endMarker = new T.Marker(new T.LngLat(points[points.length-1].lng, points[points.length-1].lat), { icon: endIcon, title: '终点' });
+
+                map.addOverLay(startMarker);
+                map.addOverLay(endMarker);
+                markers.push(startMarker, endMarker);
+
+                window.addPolyline(points, color);
+                map.panTo(new T.LngLat(points[0].lng, points[0].lat));
+            } catch(e) {
+                console.error('Show track error:', e);
+            }
+        };
+
+        window.clearTrack = function() {
+            trackPoints = [];
+            if (polyline && map) {
+                try { map.removeOverLay(polyline); } catch(e) {}
+                polyline = null;
+            }
+            clearMarkers();
+            var infoBox = document.getElementById('infoBox');
+            if (infoBox) infoBox.classList.remove('show');
+        };
+
+        window.setCenter = function(lng, lat, zoom) {
+            if (!map) return;
+            try {
+                map.panTo(new T.LngLat(lng, lat));
+                if (zoom) map.zoomTo(Math.round(zoom));
+            } catch(e) {}
+        };
+
+        window.onTiandituReady = function() {
+            initMap();
+        };
+
+        if (document.readyState === 'complete') {
+            var script = document.createElement('script');
+            script.src = 'https://api.tianditu.gov.cn/api?v=4.0&tk=a1e68e34cbd7db27211f04c694a614ff';
+            script.onload = function() { if (!apiLoaded) initMap(); };
+            script.onerror = function() { console.error('Failed to load Tianditu API'); };
+            document.body.appendChild(script);
+        } else {
+            window.addEventListener('load', function() {
+                var script = document.createElement('script');
+                script.src = 'https://api.tianditu.gov.cn/api?v=4.0&tk=a1e68e34cbd7db27211f04c694a614ff';
+                script.onload = function() { if (!apiLoaded) initMap(); };
+                script.onerror = function() { console.error('Failed to load Tianditu API'); };
+                document.body.appendChild(script);
+            });
+        }
+    </script>
+</body>
+</html>

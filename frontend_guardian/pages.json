@@ -1,0 +1,107 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "监护中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/register/index",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/health/index",
+      "style": {
+        "navigationBarTitleText": "健康数据",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/location/index",
+      "style": {
+        "navigationBarTitleText": "实时位置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/location/history",
+      "style": {
+        "navigationBarTitleText": "历史轨迹",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/alarm/index",
+      "style": {
+        "navigationBarTitleText": "告警记录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/bind/index",
+      "style": {
+        "navigationBarTitleText": "绑定管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/fence/index",
+      "style": {
+        "navigationBarTitleText": "电子围栏",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/fence/add",
+      "style": {
+        "navigationBarTitleText": "添加围栏",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "监护端",
+    "navigationBarBackgroundColor": "#1890ff",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1890ff",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/alarm/index",
+        "text": "告警"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  }
+}
